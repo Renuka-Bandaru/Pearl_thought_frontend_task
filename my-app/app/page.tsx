@@ -17,8 +17,7 @@ export default function LoginPage() {
 const [showPassword, setShowPassword] = useState(false)
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-      <Card className="w-full max-w-sm rounded-2xl shadow-xl bg-gradient-to-br from-emerald-50 to-emerald-300
-">
+      <Card className="w-full max-w-sm rounded-2xl shadow-xl bg-gradient-to-br from-emerald-50 to-emerald-300">
         <CardContent className="p-6 space-y-6">
 
           {/* Logo */}
