@@ -5,10 +5,12 @@ import { Card, CardContent } from "@/components/ui/card"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import LoginForm from "@/components/LoginForm"
+import SignupForm from "@/components/SignupForm"
 
 export default function HomePage() {
   const router = useRouter()
   const [showLogin, setShowLogin] = useState(false)
+  const [showSignup, setShowSignup] = useState(false)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-emerald-300 flex flex-col">
@@ -30,7 +32,8 @@ export default function HomePage() {
 
           <Button
             className="bg-cyan-600 hover:bg-cyan-700 text-white"
-            onClick={() => router.push("/signup")}
+            onClick={() => setShowSignup(true)}
+            
           >
             Create Account
           </Button>
@@ -54,13 +57,13 @@ export default function HomePage() {
             </p>
 
             <div className="flex gap-4 pt-4">
-              <Button
-                size="lg"
-                className="bg-cyan-600 hover:bg-cyan-700 text-white"
-                onClick={() => router.push("/signup")}
-              >
-                Get Started
-              </Button>
+                  <Button
+                    size="lg"
+                    className="bg-cyan-600 hover:bg-cyan-700 text-white"
+                    onClick={() => setShowSignup(true)}
+                  >
+                    Get Started
+                  </Button>
 
               <Button
                 size="lg"
@@ -89,7 +92,7 @@ export default function HomePage() {
 
               <Button
                 className="w-full bg-cyan-600 hover:bg-cyan-700 text-white mt-4"
-                onClick={() => router.push("/signup")}
+                onClick={() => setShowSignup(true)}
               >
                 Create Free Account
               </Button>
@@ -112,13 +115,32 @@ export default function HomePage() {
 
           <div className="relative z-10 p-4">
             <button
-              className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-md"
+              className="absolute -top-2 -right-2  rounded-full p-1 shadow-md"
               onClick={() => setShowLogin(false)}
               aria-label="Close login"
             >
               ✕
             </button>
-            <LoginForm onClose={() => setShowLogin(false)} />
+            <LoginForm onClose={() => setShowLogin(false)} onOpenSignup={() => { setShowLogin(false); setShowSignup(true); }} />
+          </div>
+        </div>
+      )}
+      {showSignup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowSignup(false)}
+          />
+
+          <div className="relative z-10 p-4">
+            <button
+              className="absolute -top-2 -right-2 rounded-full p-1 shadow-md"
+              onClick={() => setShowSignup(false)}
+              aria-label="Close signup"
+            >
+              ✕
+            </button>
+            <SignupForm onClose={() => setShowSignup(false)} />
           </div>
         </div>
       )}

@@ -8,19 +8,70 @@ import { Separator } from "@/components/ui/separator"
 import { FcGoogle } from "react-icons/fc"
 import { FiEye, FiEyeOff } from "react-icons/fi"
 import { useState, useRef } from "react"
+// removed Link; will use callback to open signup modal
 import { useRouter } from "next/navigation"
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
 import { auth } from "@/lib/firebase"
 import doclogo from "../public/doclogo.png"
 
-export default function LoginForm({ onClose }: { onClose?: () => void }) {
+export default function LoginForm({ onClose, onOpenSignup }: { onClose?: () => void; onOpenSignup?: () => void }) {
   const [loginType, setLoginType] = useState<"mobile" | "email">("mobile")
   const [showPassword, setShowPassword] = useState(false)
   const [phone, setPhone] = useState("")
+  const [errors, setErrors] = useState<any>({})
   const [loading, setLoading] = useState(false)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
 
   const router = useRouter()
   const recaptchaRef = useRef<RecaptchaVerifier | null>(null)
+  const validateEmailLogin = () => {
+    const newErrors: any = {}
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+    if (!email) {
+      newErrors.email = "Email is required"
+    } else if (!emailRegex.test(email)) {
+      newErrors.email = "Enter valid email address"
+    }
+
+    if (!password) {
+      newErrors.password = "Password is required"
+    } else if (password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters"
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+
+  const handleEmailLogin = () => {
+    if (!validateEmailLogin()) return
+
+    const usersStr = localStorage.getItem("users")
+    if (!usersStr) {
+      setErrors({ email: "No users found. Please sign up." })
+      return
+    }
+
+    const users = JSON.parse(usersStr)
+    const user = users.find((u: any) => u.email === email)
+
+    if (!user) {
+      setErrors({ email: "Email not registered" })
+      return
+    }
+
+    if (user.password !== password) {
+      setErrors({ password: "Incorrect password" })
+      return
+    }
+
+    localStorage.setItem("currentUser", JSON.stringify(user))
+    router.push("/doctorsList")
+  }
 
   const sendOtp = async () => {
     if (!phone) {
@@ -109,13 +160,20 @@ export default function LoginForm({ onClose }: { onClose?: () => void }) {
 
         {loginType === "email" && (
           <>
-            <Input type="email" placeholder="Enter your email" />
+            <Input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail((e.target as HTMLInputElement).value)}
+            />
 
             <div className="relative w-full">
               <Input
                 type={showPassword ? "text" : "password"}
                 placeholder="Enter your password"
                 className="pr-10"
+                value={password}
+                onChange={(e) => setPassword((e.target as HTMLInputElement).value)}
               />
               <span
                 className="absolute right-3 top-3 cursor-pointer"
@@ -135,7 +193,7 @@ export default function LoginForm({ onClose }: { onClose?: () => void }) {
           <button className="text-red-500 hover:underline">Forgot Password</button>
         </div>
 
-        <Button onClick={loginType === "mobile" ? sendOtp : undefined} className="w-full rounded-xl bg-cyan-600 hover:bg-cyan-700">
+        <Button onClick={loginType === "mobile" ? sendOtp : handleEmailLogin} className="w-full rounded-xl bg-cyan-600 hover:bg-cyan-700">
           {loading ? "Sending OTP..." : "Login"}
         </Button>
 
@@ -153,7 +211,7 @@ export default function LoginForm({ onClose }: { onClose?: () => void }) {
         </Button>
 
         <p className="text-center text-sm text-gray-800 pt-4">
-          Don’t have an account? <span className="text-cyan-800 cursor-pointer hover:underline">Sign Up</span>
+          Don’t have an account? <button type="button" onClick={() => { onClose?.(); onOpenSignup?.(); }} className="text-cyan-800 hover:underline font-semibold">Sign Up</button>
         </p>
 
       </CardContent>
