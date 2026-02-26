@@ -9,9 +9,21 @@ export default function OtpPage() {
 
   const verifyOtp = async () => {
     try {
-      await window.confirmationResult.confirm(otp)
+      const result = await window.confirmationResult.confirm(otp)
+      const user = result.user
+
+      // Save user to localStorage so Navbar can detect login status
+      const currentUser = {
+        id: user.uid,
+        uid: user.uid,
+        phoneNumber: user.phoneNumber,
+        email: user.email,
+        displayName: user.displayName,
+      }
+      localStorage.setItem("currentUser", JSON.stringify(currentUser))
+
       alert("Login Successful")
-      router.push("/dashboard")
+      router.push("/doctorsList")
     } catch (error) {
       alert("Invalid OTP")
     }

@@ -19,9 +19,14 @@ export default function Home() {
   const [userName, setUserName] = useState("")
 
   const { doctors } = useAppSelector((state) => state.doctors)
+  const [localDoctors, setLocalDoctors] = useState<Doctor[]>([])
+  const [allDoctors, setAllDoctors] = useState<Doctor[]>([])
 
   useEffect(() => {
     dispatch(fetchDoctors())
+
+    const stored = localStorage.getItem("doctors")
+    setLocalDoctors(stored ? JSON.parse(stored) : [])
   }, [dispatch])
 
   useEffect(() => {
@@ -32,12 +37,24 @@ export default function Home() {
     }
   }, [])
 
+  // combine API + locally registered doctors
+  useEffect(() => {
+    const combined = [...doctors]
+    // avoid duplicates by id
+    localDoctors.forEach((ld) => {
+      if (!combined.find((d) => d.id === ld.id)) {
+        combined.push(ld)
+      }
+    })
+    setAllDoctors(combined)
+  }, [doctors, localDoctors])
+
   const specialties = [
     "All",
-    ...new Set(doctors.map((doc: Doctor) => doc.specialty)),
+    ...new Set(allDoctors.map((doc: Doctor) => doc.specialty)),
   ]
 
-  const filteredDoctors = doctors.filter((doc: Doctor) => {
+  const filteredDoctors = allDoctors.filter((doc: Doctor) => {
     const matchesSearch = doc.name
       .toLowerCase()
       .includes(search.toLowerCase())
@@ -79,9 +96,9 @@ export default function Home() {
 
             {/* Specialty Chips */}
             <div className="flex gap-3 overflow-x-auto mt-5 pb-2 scrollbar-hide">
-              {specialties.map((spec) => (
+              {specialties.map((spec, idx) => (
                 <button
-                  key={spec}
+                  key={`${spec}-${idx}`}
                   onClick={() => setSelectedSpecialty(spec)}
                   className={`px-5 py-2 text-sm rounded-full font-medium whitespace-nowrap transition-all duration-300
                     ${
@@ -101,7 +118,10 @@ export default function Home() {
        
        {/* Doctors Grid */}
 <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-  {filteredDoctors.map((doctor) => (
+  {filteredDoctors.map((doctor) => {
+    // compute availability count
+    const avail = JSON.parse(localStorage.getItem("availability") || "[]").filter((a: any) => a.doctorName === doctor.name)
+    return (
     <Card
       key={doctor.id}
       className="rounded-3xl border-0 shadow-md hover:shadow-xl transition-all duration-300 bg-white"
@@ -118,7 +138,11 @@ export default function Home() {
             <h3 className="font-semibold text-lg text-emerald-900">
               {doctor.name}
             </h3>
-
+            {avail.length > 0 && (
+              <p className="text-xs text-indigo-600 mt-1">
+                {avail.length} slot{avail.length > 1 ? "s" : ""} available
+              </p>
+            )}
             <p className="text-sm text-emerald-700 mt-1">
               Senior {doctor.specialty}
             </p>
@@ -148,7 +172,7 @@ export default function Home() {
 
       </CardContent>
     </Card>
-  ))}
+  )})}
 </div>
 
       </div>

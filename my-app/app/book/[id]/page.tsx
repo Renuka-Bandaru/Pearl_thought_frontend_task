@@ -20,8 +20,10 @@ export default function BookAppointmentPage() {
 
   const [selectedDate, setSelectedDate] = useState("")
   const [selectedSlot, setSelectedSlot] = useState("")
+  const [selectedType, setSelectedType] = useState<"single" | "group" | "">("")
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [availSlots, setAvailSlots] = useState<any[]>([])
 
   useEffect(() => {
     if (doctors.length === 0) {
@@ -29,8 +31,33 @@ export default function BookAppointmentPage() {
     }
   }, [dispatch, doctors.length])
 
-  const doctor = doctors.find((doc) => doc.id === doctorId)
+  // doctor state to avoid accessing localStorage during render
+  const [doctor, setDoctor] = useState<any>(null)
 
+  useEffect(() => {
+    // try redux list first
+    let found = doctors.find((doc) => doc.id === doctorId)
+    if (!found && typeof window !== "undefined") {
+      const local = JSON.parse(localStorage.getItem("doctors") || "[]")
+      found = local.find((d: any) => d.id === params.id || d.id === doctorId)
+    }
+    setDoctor(found || null)
+  }, [doctors, doctorId, params.id])
+  // compute available slots when date or doctor changes
+  useEffect(() => {
+    if (!selectedDate) {
+      setAvailSlots([])
+      return
+    }
+    const allAvail = JSON.parse(localStorage.getItem("availability") || "[]")
+    const slots = allAvail.filter(
+      (a: any) =>
+        a.doctorName === doctor?.name &&
+        a.date === selectedDate
+    )
+    setAvailSlots(slots)
+  }, [selectedDate, doctor])
+  // fallback slots but availability takes precedence
   const timeSlots = [
     "09:00 AM",
     "10:00 AM",
@@ -55,6 +82,11 @@ export default function BookAppointmentPage() {
       return
     }
 
+    // find and store selected type
+    const slotInfo = availSlots.find((s) => s.slot === selectedSlot)
+    const type = slotInfo ? slotInfo.type : "single"
+    setSelectedType(type)
+
     const currentUser = localStorage.getItem("currentUser")
     if (!currentUser) {
       setError("Please login first")
@@ -66,14 +98,14 @@ export default function BookAppointmentPage() {
     const existingBookings =
       JSON.parse(localStorage.getItem("appointments") || "[]")
 
-    const alreadyBooked = existingBookings.find(
+    // prevent double-booking: if any existing appointment matches doctor, date and slot
+    const slotBooked = existingBookings.find(
       (b: any) =>
-        b.doctorId === doctorId &&
+        b.doctorName === doctor?.name &&
         b.date === selectedDate &&
         b.slot === selectedSlot
     )
-
-    if (alreadyBooked) {
+    if (slotBooked) {
       setError("This slot is already booked. Please choose another.")
       return
     }
@@ -85,6 +117,7 @@ export default function BookAppointmentPage() {
       userId: user.id,
       date: selectedDate,
       slot: selectedSlot,
+      type: slotInfo ? slotInfo.type : "single",
     }
 
     localStorage.setItem(
@@ -98,6 +131,20 @@ export default function BookAppointmentPage() {
       router.push("/book/user")
     }, 1500)
   }
+
+  // Check which slots are available for the selected date
+  const getBookedSlots = () => {
+    if (!selectedDate) return []
+    const existingBookings =
+      JSON.parse(localStorage.getItem("appointments") || "[]")
+    return existingBookings
+      .filter(
+        (b: any) => b.doctorName === doctor?.name && b.date === selectedDate
+      )
+      .map((b: any) => b.slot)
+  }
+
+  const bookedSlots = getBookedSlots()
 
   if (!doctor) {
     return (
@@ -166,19 +213,38 @@ export default function BookAppointmentPage() {
               </label>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {timeSlots.map((slot) => (
-                  <button
-                    key={slot}
-                    onClick={() => setSelectedSlot(slot)}
-                    className={`py-2 rounded-xl border transition ${
-                      selectedSlot === slot
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-white text-blue-700 border-blue-200 hover:bg-blue-50"
-                    }`}
-                  >
-                    {slot}
-                  </button>
-                ))}
+                {availSlots.length === 0 && (
+                  <p className="col-span-full text-center text-gray-500">
+                    No availability set for this date. Please check later.
+                  </p>
+                )}
+                {(availSlots.length > 0 ? availSlots : timeSlots.map((t) => ({ slot: t, type: "single" }))).map((s) => {
+                  const slot = typeof s === "string" ? s : s.slot || s
+                  const type = (s as any).type || "single"
+
+                  // bookedSlots is an array of slot strings
+                  const isBooked = bookedSlots.includes(slot)
+                  const isSelected = selectedSlot === slot
+
+                  return (
+                    <button
+                      key={slot}
+                      onClick={() => !isBooked && setSelectedSlot(slot)}
+                      disabled={isBooked}
+                      className={`py-2 rounded-xl border transition ${
+                        isBooked
+                          ? "bg-gray-200 text-gray-500 border-gray-300 cursor-not-allowed"
+                          : isSelected
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white text-blue-700 border-blue-200 hover:bg-blue-50 cursor-pointer"
+                      }`}
+                    >
+                      {slot}
+                      <div className="text-xs">{type === "group" ? "(Group)" : ""}</div>
+                      {isBooked && <div className="text-xs">Booked</div>}
+                    </button>
+                  )
+                })}
               </div>
             </div>
 

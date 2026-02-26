@@ -18,6 +18,9 @@ import {
 const formSchema = z
   .object({
     name: z.string().min(3, "Name must be at least 3 characters"),
+    specialization: z.string().min(3, "Specialization is required"),
+    licenseNumber: z.string().min(5, "License number is required"),
+    hospital: z.string().min(3, "Hospital name is required"),
     email: z.string().email("Enter a valid email address"),
     password: z
       .string()
@@ -31,13 +34,16 @@ const formSchema = z
     path: ["confirmPassword"],
   })
 
-type SignupFormValues = z.infer<typeof formSchema>
+type DoctorSignupFormValues = z.infer<typeof formSchema>
 
-export default function SignupForm({ onClose, onSuccess }: { onClose?: () => void; onSuccess?: () => void }) {
-  const form = useForm<SignupFormValues>({
+export default function DoctorSignupForm({ onClose, onSuccess }: { onClose?: () => void; onSuccess?: () => void }) {
+  const form = useForm<DoctorSignupFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
+      specialization: "",
+      licenseNumber: "",
+      hospital: "",
       email: "",
       password: "",
       confirmPassword: "",
@@ -45,23 +51,26 @@ export default function SignupForm({ onClose, onSuccess }: { onClose?: () => voi
   })
 
   const onSubmit = (data: any) => {
-    const existingUsersStr = localStorage.getItem("users")
-    const existingUsers = existingUsersStr ? JSON.parse(existingUsersStr) : []
+    const existingDoctorsStr = localStorage.getItem("doctors")
+    const existingDoctors = existingDoctorsStr ? JSON.parse(existingDoctorsStr) : []
 
-    const emailExists = existingUsers.some((user: any) => user.email === data.email)
+    const emailExists = existingDoctors.some((doc: any) => doc.email === data.email)
     if (emailExists) {
       alert("Email already registered. Please login instead.")
       return
     }
 
-    const newUser = {
+    const newDoctor = {
       id: Date.now().toString(),
       name: data.name,
+      specialization: data.specialization,
+      licenseNumber: data.licenseNumber,
+      hospital: data.hospital,
       email: data.email,
       password: data.password,
     }
-    existingUsers.push(newUser)
-    localStorage.setItem("users", JSON.stringify(existingUsers))
+    existingDoctors.push(newDoctor)
+    localStorage.setItem("doctors", JSON.stringify(existingDoctors))
 
     alert("Account created successfully! Please login now.")
     onClose?.()
@@ -69,9 +78,12 @@ export default function SignupForm({ onClose, onSuccess }: { onClose?: () => voi
   }
 
   return (
-    <Card className="w-lg rounded-2xl shadow-xl bg-gradient-to-br from-emerald-50 to-emerald-300">
-      <CardHeader className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-t-2xl">
-        <CardTitle className="text-2xl text-center">Create an Account</CardTitle>
+    <Card className="w-lg rounded-2xl shadow-xl bg-gradient-to-br from-blue-50 to-blue-300">
+      <CardHeader className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-t-2xl">
+        <CardTitle className="text-2xl text-center">Register as Doctor</CardTitle>
+        <p className="text-sm text-blue-100 mt-2 text-center">
+          Use the same name as your doctor profile to see your appointments
+        </p>
       </CardHeader>
 
       <CardContent className="pt-8">
@@ -85,6 +97,48 @@ export default function SignupForm({ onClose, onSuccess }: { onClose?: () => voi
                   <FormLabel className="text-sm font-medium">Full Name</FormLabel>
                   <FormControl>
                     <Input placeholder="Enter your name" {...field} className="rounded-lg" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="specialization"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium">Specialization</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Cardiology, Pediatrics" {...field} className="rounded-lg" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="licenseNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium">License Number</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Your medical license number" {...field} className="rounded-lg" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="hospital"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium">Hospital / Clinic</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Your hospital or clinic name" {...field} className="rounded-lg" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -133,7 +187,7 @@ export default function SignupForm({ onClose, onSuccess }: { onClose?: () => voi
               )}
             />
 
-            <Button type="submit" className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-2 rounded-lg">
+            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg">
               Sign Up
             </Button>
           </form>

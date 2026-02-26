@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -18,16 +18,25 @@ export default function SingleDocDetails() {
   const { doctors, loading } = useAppSelector(
     (state) => state.doctors
   )
+  const [localDoctors, setLocalDoctors] = useState<any[]>([])
 
   useEffect(() => {
     if (doctors.length === 0) {
       dispatch(fetchDoctors())
     }
+    const stored = localStorage.getItem("doctors")
+    setLocalDoctors(stored ? JSON.parse(stored) : [])
   }, [dispatch, doctors.length])
 
-  const doctor = doctors.find(
+  // attempt to find in API data first, fall back to local doctors
+  let doctor = doctors.find(
     (doc) => doc.id === parseInt(params.id as string)
   )
+  if (!doctor) {
+    doctor = localDoctors.find(
+      (doc) => doc.id === params.id || doc.id === parseInt(params.id as string)
+    )
+  }
 
   if (loading) {
     return (
@@ -162,17 +171,29 @@ export default function SingleDocDetails() {
           </CardContent>
         </Card>
 
-        {/* Availability */}
+        {/* Availability (API fields or local slots) */}
         <Card className="rounded-3xl shadow-md bg-blue-50 border border-blue-100 mb-10">
           <CardContent className="p-6">
             <h3 className="text-xl font-semibold text-blue-800 mb-3">
               Availability
             </h3>
-
-            <div className="flex justify-between text-blue-900">
-              <span>{doctor.availabilityDays}</span>
-              <span>{doctor.availabilityTime}</span>
-            </div>
+            {doctor.availabilityDays || doctor.availabilityTime ? (
+              <div className="flex justify-between text-blue-900">
+                <span>{doctor.availabilityDays}</span>
+                <span>{doctor.availabilityTime}</span>
+              </div>
+            ) : (
+              // show slots from local storage
+              <ul className="space-y-1">
+                {(JSON.parse(localStorage.getItem("availability")||"[]")
+                  .filter((a:any)=>a.doctorName===doctor.name)
+                  .map((a:any)=>`${a.date} ${a.slot} (${a.type})`)
+                  .map((txt:string, idx:number)=>(
+                    <li key={idx} className="text-blue-900">{txt}</li>
+                  ))
+                )}
+              </ul>
+            )}
           </CardContent>
         </Card>
 
